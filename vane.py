@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Revision History:
+  2015-01=23, ksb, corrected calibration for actual device
   2015-01-09, ksb, created
 """
 
@@ -53,6 +54,9 @@ class Vane(object):
     """Initialize the ADS1115 object."""
     self.adc = ADS1x15(address=Vane.ADDR_VDD,
                        ic=Vane.ADS1115)
+
+    self.last_v = None
+
     return
 
   def get_readings(self):
@@ -67,6 +71,7 @@ class Vane(object):
     # get the converted values
     degrees = self.volts_to_degrees(volts)
 
+
     return volts, degrees
 
   def volts_to_degrees(self, volts):
@@ -74,8 +79,15 @@ class Vane(object):
 
     volts: voltage from ADA1733 anemometer
 
+    # slope = 360/2.65 = 135.919838
+    # y intercept = -44.675491
     returns: voltage converted to meters per second"""
-    return 78.60262*volts - 15.720524
+
+    min_v = 0.32850
+    max_v = 2.97675
+    slope = 360.0/(max_v-min_v)
+    b = -(slope*min_v)
+    return slope*volts+ b
 
 
 def main():
@@ -91,19 +103,25 @@ def main():
   vane = Vane()
 
   # read the values and loop
+  max_volts = 0.0
+  min_volts = 5.0
   while True:
     # get the readings
     volts, degrees = vane.get_readings()
+
+    # track the max and min
+    if volts < min_volts: min_volts = volts
+    if volts > max_volts: max_volts = volts
 
     # get a timestamp
     timenow = datetime.datetime.utcnow()
 
     # show the user what we got
-    data = ": Volts:{:.5f}  Degrees:{:.1f}".format(volts, degrees)
+    data = ": Volts:{:.5f}  Degrees:{:05.1f}, max:{:.5f} min:{:.5f}".format(volts, degrees, max_volts, min_volts)
     print timenow, data
 
     # wait a bit
-    time.sleep(0.25) 
+    #time.sleep(0.1) 
 
 # only run main if this is called directly
 if __name__ == '__main__':

@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Revision History:
+  2015-01-23, ksb, added wind vane
   2015-01-22, ksb, added pulse count
   2015-01-11, ksb, added csv capability
   2015-01-09, ksb, added pyranometer code
@@ -37,6 +38,7 @@ import threading
 
 import ada1733 as ada1733
 import pyranometer as pyranometer
+import vane as vane
 
 import numpy as np
 
@@ -167,6 +169,8 @@ class roof_station(object):
     # instance our hardware objects
     self.anemometer = ada1733.ADA1733()
     self.pyranometer = pyranometer.Pyranometer()
+    self.vane = vane.Vane()
+
 
     # instance our processors
     self.process_003sec = Averager(3)
@@ -208,9 +212,9 @@ class roof_station(object):
     ws_mph, windrun = self.anemometer.get_readings()
     # pyranometer
     volts, solar = self.pyranometer.get_readings()
-
     # wind vane
-    ws_dir = 0.0
+    volts, ws_dir = self.vane.get_readings()
+    print ws_dir
 
     self.pulse_count += 1
     
