@@ -214,7 +214,6 @@ class roof_station(object):
     volts, solar = self.pyranometer.get_readings()
     # wind vane
     volts, ws_dir = self.vane.get_readings()
-    print ws_dir
 
     self.pulse_count += 1
     

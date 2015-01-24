@@ -83,11 +83,14 @@ class Vane(object):
     # y intercept = -44.675491
     returns: voltage converted to meters per second"""
 
-    min_v = 0.32850
-    max_v = 2.97675
+    min_v = 0.32831
+    max_v = 2.97694
     slope = 360.0/(max_v-min_v)
     b = -(slope*min_v)
-    return slope*volts+ b
+    deg = slope*volts+b
+    if deg < 0.05: deg = 0.0
+    if deg > 359.95: deg = 0.0
+    return deg
 
 
 def main():
