@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Revision History:
+  2015-01-24, ksb, removed 600 second averaging to increase speed
   2015-01-23, ksb, added wind vane
   2015-01-22, ksb, added pulse count
   2015-01-11, ksb, added csv capability
@@ -43,7 +44,7 @@ import vane as vane
 import numpy as np
 
 # define a version for this file
-VERSION = "1.0.20150111b"
+VERSION = "1.0.20150134a"
 
 def signal_handler(signal, frame):
   print "You pressed Control-c.  Exiting."
@@ -175,7 +176,7 @@ class roof_station(object):
     # instance our processors
     self.process_003sec = Averager(3)
     self.process_120sec = Averager(120)
-    self.process_600sec = Averager(600)
+    #self.process_600sec = Averager(600)
 
     # initialize the daily statistics
     self.last_date = timenow.date()
@@ -230,7 +231,7 @@ class roof_station(object):
  
     # now save the data for the other intervals
     self.process_120sec.add_values(timenow, ws_mph, ws_dir, solar, gust)
-    self.process_600sec.add_values(timenow, ws_mph, ws_dir, solar, gust)
+    #self.process_600sec.add_values(timenow, ws_mph, ws_dir, solar, gust)
     
     # maintain our daily stats
     self.daily_windrun += windrun
@@ -254,7 +255,7 @@ class roof_station(object):
 
       # compute our wind statistics
       data_120 = self.process_120sec.process_data(timenow)
-      data_600 = self.process_600sec.process_data(timenow)
+      #data_600 = self.process_600sec.process_data(timenow)
 
       # print our data to the screen
       timestamp = timenow.strftime("%Y-%m-%d %H:%M:%S")
@@ -282,13 +283,14 @@ class roof_station(object):
                                                                                                    data_120[5],
                                                                                                    data_120[6])
 
-      print "          10 Minute: {:06.2f} {:6.2f} {:6.2f} {:6.2f} {:7.2f} {:7.3f} {:6.1f}".format(data_600[0],
-                                                                                                   data_600[1],
-                                                                                                   data_600[2],
-                                                                                                   data_600[3],
-                                                                                                   data_600[4],
-                                                                                                   data_600[5],
-                                                                                                   data_600[6])
+      #print "          10 Minute: {:06.2f} {:6.2f} {:6.2f} {:6.2f} {:7.2f} {:7.3f} {:6.1f}".format(data_600[0],
+      #                                                                                             data_600[1],
+      #                                                                                             data_600[2],
+      #                                                                                             data_600[3],
+      #                                                                                             data_600[4],
+      #                                                                                             data_600[5],
+      #                                                                                             data_600[6])
+
       print "           Daily: Wind Run:{:.1f} Peak Gust:{:.1f} MaxSolar:{:.1f}".format(self.daily_windrun, self.max_gust, self.peak_solar)
       print "     Pulse Count:{:d}".format(self.pulse_count)
       self.pulse_count = 0
@@ -309,13 +311,13 @@ class roof_station(object):
                                                                                   data_120[4],
                                                                                   data_120[5],
                                                                                   data_120[6]))
-      self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f}\n".format(data_600[0],
-                                                                                  data_600[1],
-                                                                                  data_600[2],
-                                                                                  data_600[3],
-                                                                                  data_600[4],
-                                                                                  data_600[5],
-                                                                                  data_600[6]))
+      #self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f}\n".format(data_600[0],
+      #                                                                            data_600[1],
+      #                                                                            data_600[2],
+      #                                                                            data_600[3],
+      #                                                                            data_600[4],
+      #                                                                            data_600[5],
+      #                                                                            data_600[6]))
 
 
     self.data_acq.release()
@@ -359,15 +361,16 @@ class roof_station(object):
     self.csv.write("Wind Speed Standard Deviation [120 sec] (mph),")
     self.csv.write("Gust [120 sec] (mph),")
     self.csv.write("TI [120 sec],")
-    self.csv.write("Solar Insolation [120 sec] (W/m^2),")
-
-    self.csv.write("Wind Direction [600 sec] (True),")
-    self.csv.write("Vector Wind Speed [600 sec] (mph),")
-    self.csv.write("Scalar Wind Speed [600 sec] (mph),")
-    self.csv.write("Wind Speed Standard Deviation [600 sec] (mph),")
-    self.csv.write("Gust [600 sec] (mph),")
-    self.csv.write("TI [600 sec],")
-    self.csv.write("Solar Insolation [600 sec] (W/m^2)\n")
+    self.csv.write("Solar Insolation [120 sec] (W/m^2)\n")
+    
+    # if using this code, change the \n above to a ,
+    #self.csv.write("Wind Direction [600 sec] (True),")
+    #self.csv.write("Vector Wind Speed [600 sec] (mph),")
+    #self.csv.write("Scalar Wind Speed [600 sec] (mph),")
+    #self.csv.write("Wind Speed Standard Deviation [600 sec] (mph),")
+    #self.csv.write("Gust [600 sec] (mph),")
+    #self.csv.write("TI [600 sec],")
+    #self.csv.write("Solar Insolation [600 sec] (W/m^2)\n")
 
     # reset the daily statistics
     self.daily_windrun = 0.0
