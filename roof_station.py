@@ -17,9 +17,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Revision History:
+  2015-01-24, ksb, cleaned up comments 
   2015-01-24, ksb, removed 600 second averaging to increase speed
   2015-01-23, ksb, added wind vane
-  2015-01-22, ksb, added pulse count
+  2015-01-12, ksb, added pulse count
   2015-01-11, ksb, added csv capability
   2015-01-09, ksb, added pyranometer code
   2015-01-04, ksb, implemented 3, 120, and 600 second averaging
@@ -44,7 +45,7 @@ import vane as vane
 import numpy as np
 
 # define a version for this file
-VERSION = "1.0.20150134a"
+VERSION = "1.0.20150124b"
 
 def signal_handler(signal, frame):
   print "You pressed Control-c.  Exiting."
@@ -68,14 +69,14 @@ class Averager(object):
 
     return
 
-  def add_values(self, timestamp, ws_4hz, wd_4hz, solar_insolation, gust_3second):
+  def add_values(self, timestamp, ws_4hz, wd_4hz, solar_insolation, gust_3second=-999.0):
     """Add new values to the history
 
     timestamp: datetime.datetime timestamp
     ws_4hz: wind speed measurement (in MPH) sampled at 4 Hz
     wd_4hz: wind direction measurement (degrees from True north) sampled at 4 Hz
     solar_insolation: measured solar insolation in W/m^2
-    gust_3second: 3 second average of 4 Hz wind speeds--used for gust reporting"""
+    gust_3second: optional 3 second average of 4 Hz wind speeds--used for gust reporting"""
 
     # this is going to be called a lot, so do as little as possible
     # compute the vector components.  Remember direction is reported
@@ -92,7 +93,16 @@ class Averager(object):
   def process_data(self, timenow):
     """Maintain the history and process the averages
 
-    timenow: current time"""
+    timenow: current time
+    
+    returns:
+      mean_direction: vector averaged direction (from u & v)
+      vector_speed: vector averaged speed (from u & v) in m/s
+      scalar_speed: scalar averaged speed (from given speeds) in m/s
+      ws_std: scalar speed standard deviation in m/s
+      peak_gust: maximum scalar wind speed in the averaging interval in m/s
+      ti: turbulence intensity computed from scalar speeds
+      insolation: average solar insolation in W/m^2"""
 
     # first clean up the history
     self._clean_history(timenow)
@@ -102,7 +112,7 @@ class Averager(object):
     # now compute the stats
     mean = np.mean(a=self.history, axis=0)
     std = np.std(a=self.history, axis=0)
-    max = np.argmax(a=self.history, axis=0)  # these are indices, not values
+    maxs = np.argmax(a=self.history, axis=0)  # these are indices, not values
 
     # pull out the interesting values
     scalar_speed = mean[0]
@@ -110,7 +120,7 @@ class Averager(object):
     u = mean[4]
     v = mean[5]
     ws_std = std[0]
-    peak_gust = self.history[max[3]][3]
+    peak_gust = self.history[maxs[3]][3]
 
     # compute vector quantities
     vector_speed = math.sqrt(u**2.0 + v**2.0)
@@ -155,6 +165,11 @@ class Averager(object):
 
 class roof_station(object):
   def __init__(self, data_path):
+    """The roof weather station class.  This collects data
+    from the anemometer, wind vane, and  pyranometer and
+    writes the data to the archive.
+
+    data_path: path to data archive"""
     # get the current time so we know when we started
     timenow = datetime.datetime.utcnow()
 
@@ -195,12 +210,14 @@ class roof_station(object):
     return
 
   def run(self):
+    """A do nothing routine to use so the thread won't exit"""
     while True:
       time.sleep(10)
 
   def timer_isr(self, signal, frame):
     """This is automatically run every 0.25 seconds by the signaller.  Perform
-    high rate tasks in here and then call other routines for the low rate tasks."""
+    high rate tasks in here and then call other routines for the low rate tasks.
+    Called by the timer alarm."""
 
     if self.data_acq.acquire(False) == False:
       return
@@ -219,7 +236,7 @@ class roof_station(object):
     self.pulse_count += 1
     
     # 3 second data
-    self.process_003sec.add_values(timenow, ws_mph, ws_dir, solar, -999.0)
+    self.process_003sec.add_values(timenow, ws_mph, ws_dir, solar)
 
     # WMO peak gust comes from the maximum 3 second average wind in
     # the averaging interval.  Compute that here to add to the other
@@ -325,6 +342,10 @@ class roof_station(object):
     return
 
   def new_file(self, timenow):
+    """Opens a new data archive CSV file and adds a header.  
+    Also closes old file if it exists.
+
+    timenow: datetime current time"""
     # close the current file
     if self.csv:
       self.csv.close()
