@@ -321,7 +321,7 @@ class roof_station(object):
                                                                                   data_003[4],
                                                                                   data_003[5],
                                                                                   data_003[6]))
-      self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f},".format(data_120[0],
+      self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f}\n".format(data_120[0],
                                                                                   data_120[1],
                                                                                   data_120[2],
                                                                                   data_120[3],
