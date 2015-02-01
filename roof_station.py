@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Revision History:
+  2015-02-01, ksb, added use of namedtuple
   2015-01-24, ksb, cleaned up comments 
   2015-01-24, ksb, removed 600 second averaging to increase speed
   2015-01-23, ksb, added wind vane
@@ -38,6 +39,10 @@ import signal
 from datetime import timedelta
 import threading
 
+# look into these to make this better
+#from collections import deque
+from collections import namedtuple
+
 import ada1733 as ada1733
 import pyranometer as pyranometer
 import vane as vane
@@ -45,13 +50,15 @@ import vane as vane
 import numpy as np
 
 # define a version for this file
-VERSION = "1.0.20150124b"
+VERSION = "1.0.20150201a"
 
 def signal_handler(signal, frame):
   print "You pressed Control-c.  Exiting."
   sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
 
+# create a named tuple to return data cleanly
+RoofData = namedtuple('RoofData', 'm_dir, v_spd, s_spd, ss_std, gust, ti, solar')
 class Averager(object):
   def __init__(self, persist_seconds):
     """This is an averager object.  It will maintain a history
@@ -95,14 +102,14 @@ class Averager(object):
 
     timenow: current time
     
-    returns:
-      mean_direction: vector averaged direction (from u & v)
-      vector_speed: vector averaged speed (from u & v) in m/s
-      scalar_speed: scalar averaged speed (from given speeds) in m/s
-      ws_std: scalar speed standard deviation in m/s
-      peak_gust: maximum scalar wind speed in the averaging interval in m/s
+    returns: namedtuple:
+      m_dir: vector averaged direction (from u & v)
+      v_spd: vector averaged speed (from u & v) in m/s
+      s_spd: scalar averaged speed (from given speeds) in m/s
+      ss_std: scalar speed standard deviation in m/s
+      gust: maximum scalar wind speed in the averaging interval in m/s
       ti: turbulence intensity computed from scalar speeds
-      insolation: average solar insolation in W/m^2"""
+      solar: average solar insolation in W/m^2"""
 
     # first clean up the history
     self._clean_history(timenow)
@@ -136,7 +143,7 @@ class Averager(object):
     else:
       ti = -999.0
 
-    return mean_direction, vector_speed, scalar_speed, ws_std, peak_gust, ti, insolation
+    return RoofData._make([mean_direction, vector_speed, scalar_speed, ws_std, peak_gust, ti, insolation])
 
   def _clean_history(self, timenow):
     """This function removes stale data (that which is older than we
@@ -243,19 +250,16 @@ class roof_station(object):
     # processing
     data_003 = self.process_003sec.process_data(timenow)
 
-    # gust is the average wind speed from the last 3 seconds
-    gust = data_003[2]
- 
     # now save the data for the other intervals
-    self.process_120sec.add_values(timenow, ws_mph, ws_dir, solar, gust)
-    #self.process_600sec.add_values(timenow, ws_mph, ws_dir, solar, gust)
+    self.process_120sec.add_values(timenow, ws_mph, ws_dir, solar, data_003.s_spd)
+    #self.process_600sec.add_values(timenow, ws_mph, ws_dir, solar, data_003.s_spd)
     
     # maintain our daily stats
     self.daily_windrun += windrun
-    if gust > self.max_gust:
-      self.max_gust = ws_mph
-    if data_003[6] > self.peak_solar:
-      self.peak_solar = data_003[6]
+    if data_003.s_spd > self.max_gust:
+      self.max_gust = data_003.s_spd
+    if data_003.solar > self.peak_solar:
+      self.peak_solar = data_003.solar
 
     # perform these tasks every second
     if timenow >= self.next_001:
@@ -284,29 +288,29 @@ class roof_station(object):
       #os.system('cls' if os.name == 'nt' else 'clear')
       print "{:s}:    Dir   Vspd   Sspd  SpStd    Gust      Ti Insolation".format(timestamp)
       print "                        deg    mph    mph    mph     mph      -- W/m^2"
-      print "           3 Second: {:06.2f} {:6.2f} {:6.2f} {:6.2f} {:7.2f} {:7.3f} {:6.1f}".format(data_003[0],
-                                                                                                   data_003[1],
-                                                                                                   data_003[2],
-                                                                                                   data_003[3],
-                                                                                                   data_003[4],
-                                                                                                   data_003[5],
-                                                                                                   data_003[6])
+      print "           3 Second: {:06.2f} {:6.2f} {:6.2f} {:6.2f} {:7.2f} {:7.3f} {:6.1f}".format(data_003.m_dir,
+                                                                                                   data_003.v_spd,
+                                                                                                   data_003.s_spd,
+                                                                                                   data_003.ss_std,
+                                                                                                   data_003.gust,
+                                                                                                   data_003.ti,
+                                                                                                   data_003.solar)
 
-      print "           2 Minute: {:06.2f} {:6.2f} {:6.2f} {:6.2f} {:7.2f} {:7.3f} {:6.1f}".format(data_120[0],
-                                                                                                   data_120[1],
-                                                                                                   data_120[2],
-                                                                                                   data_120[3],
-                                                                                                   data_120[4],
-                                                                                                   data_120[5],
-                                                                                                   data_120[6])
+      print "           2 Minute: {:06.2f} {:6.2f} {:6.2f} {:6.2f} {:7.2f} {:7.3f} {:6.1f}".format(data_120.m_dir,
+                                                                                                   data_120.v_spd,
+                                                                                                   data_120.s_spd,
+                                                                                                   data_120.ss_std,
+                                                                                                   data_120.gust,
+                                                                                                   data_120.ti,
+                                                                                                   data_120.solar)
 
-      #print "          10 Minute: {:06.2f} {:6.2f} {:6.2f} {:6.2f} {:7.2f} {:7.3f} {:6.1f}".format(data_600[0],
-      #                                                                                             data_600[1],
-      #                                                                                             data_600[2],
-      #                                                                                             data_600[3],
-      #                                                                                             data_600[4],
-      #                                                                                             data_600[5],
-      #                                                                                             data_600[6])
+      #print "          10 Minute: {:06.2f} {:6.2f} {:6.2f} {:6.2f} {:7.2f} {:7.3f} {:6.1f}".format(data_600.m_dir,
+      #                                                                                             data_600.v_spd,
+      #                                                                                             data_600.s_spd,
+      #                                                                                             data_600.ss_std,
+      #                                                                                             data_600.gust,
+      #                                                                                             data_600.ti,
+      #                                                                                             data_600.solar)
 
       print "           Daily: Wind Run:{:.1f} Peak Gust:{:.1f} MaxSolar:{:.1f}".format(self.daily_windrun, self.max_gust, self.peak_solar)
       print "     Pulse Count:{:d}".format(self.pulse_count)
@@ -314,27 +318,27 @@ class roof_station(object):
 
       # add the data to the CSV file
       self.csv.write("{:s},".format(timestamp))
-      self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f},".format(data_003[0],
-                                                                                  data_003[1],
-                                                                                  data_003[2],
-                                                                                  data_003[3],
-                                                                                  data_003[4],
-                                                                                  data_003[5],
-                                                                                  data_003[6]))
-      self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f}\n".format(data_120[0],
-                                                                                  data_120[1],
-                                                                                  data_120[2],
-                                                                                  data_120[3],
-                                                                                  data_120[4],
-                                                                                  data_120[5],
-                                                                                  data_120[6]))
-      #self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f}\n".format(data_600[0],
-      #                                                                            data_600[1],
-      #                                                                            data_600[2],
-      #                                                                            data_600[3],
-      #                                                                            data_600[4],
-      #                                                                            data_600[5],
-      #                                                                            data_600[6]))
+      self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f},".format(data_003.m_dir,
+                                                                                  data_003.v_spd,
+                                                                                  data_003.s_spd,
+                                                                                  data_003.ss_std,
+                                                                                  data_003.gust,
+                                                                                  data_003.ti,
+                                                                                  data_003.solar))
+      self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f}\n".format(data_120.m_dir,
+                                                                                  data_120.v_spd,
+                                                                                  data_120.s_spd,
+                                                                                  data_120.ss_std,
+                                                                                  data_120.gust,
+                                                                                  data_120.ti,
+                                                                                  data_120.solar))
+      #self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f}\n".format(data_600.m_dir,
+      #                                                                            data_600.v_spd,
+      #                                                                            data_600.s_spd,
+      #                                                                            data_600.ss_std,
+      #                                                                            data_600.gust,
+      #                                                                            data_600.ti,
+      #                                                                            data_600.solar))
 
 
     self.data_acq.release()
