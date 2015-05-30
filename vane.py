@@ -79,12 +79,10 @@ class Vane(object):
 
     volts: voltage from ADA1733 anemometer
 
-    # slope = 360/2.65 = 135.919838
-    # y intercept = -44.675491
     returns: voltage converted to meters per second"""
 
     min_v = 0.32831
-    max_v = 2.97694
+    max_v = 2.97750
     slope = 360.0/(max_v-min_v)
     b = -(slope*min_v)
     deg = slope*volts+b
