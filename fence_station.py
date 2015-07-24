@@ -1,7 +1,7 @@
 #/usr/bin/python2
 
 """
-Copyright (C) 2014 AeroSys Engineering, Inc.
+Copyright (C) 2015 AeroSys Engineering, Inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Revision History:
+  2015-07-24, ksb, changed data retrieval to once per 5 seconds
+  2015-07-24, ksb, added raingauge support
   2014-12-31, ksb, created
 """
 
@@ -32,22 +34,29 @@ import bmp180 as bmp
 import rainwise111 as rain
 
 # define a version for this file
-VERSION = "1.0.20150724a"
+VERSION = "1.0.20150724b"
 
 def signal_handler(signal, frame):
+  """Called by the signal handler when Control C is pressed"""
   print "Fence_Station.py:  You pressed Ctrl-c.  Exiting."
+  # set the flag to terminate the rain gauge monitoring thread, and wait for it to close
   rain.RAINWISE_TERMINATE_REQUEST = True
   time.sleep(1.0)
+  
+  # exit cleanly
   sys.exit(0)
+
+# trap Control C presses and call the signal handler
 signal.signal(signal.SIGINT, signal_handler)
 
 def main():
   # add the GPL license output
-  print("Copyright (C) 2014 AeroSys Engineering, Inc.")
+  print("Copyright (C) 2015 AeroSys Engineering, Inc.")
   print("This program comes with ABSOLUTELY NO WARRANTY;")
   print("This is free software, and you are welcome to redistribute it")
   print("under certain conditions.  See GNU Public License.")
   print("")
+  print"Version: ", VERSION
 
   # start here
   am2315 = am.AM2315()
@@ -63,35 +72,33 @@ def main():
 
   # main loop
   while True:
-    t_f, t_c, p_inhg, slp_inhg, pa_ft, da_ft = bmp180.get_readings()
-
     # get a timestamp
     timenow = datetime.datetime.utcnow()
     str_time = timenow.strftime("%Y-%m-%d %H:%M:%S")
 
+    # read the data
+    # Read the BMP180
+    t180_f, t180_c, p180_inhg, slp180_inhg, pa180_ft, da180_ft = bmp180.get_readings()
+
+    # Read the AM2315
+    t2315_f, t2315_c, rh2315 = am2315.get_readings()
+    
+    # Read the Rain Gauge
+    interval_rain_in = rain111.get_readings()
+    total_rain_in = total_rain_in + interval_rain_in
+
     # show the user what we got
     print "{:s}: T(F):{:.2f} T(C):{:.2f} P(inHg):{:.2f} SLP(inHg):{:.2f} PA(ft):{:.1f} DA:{:.1f}".format(str_time,
-                                                                                                            t_f,
-                                                                                                            t_c,
-                                                                                                            p_inhg,
-                                                                                                            slp_inhg,
-                                                                                                            pa_ft,
-                                                                                                            da_ft)
+                                                                                                            t180_f,
+                                                                                                            t180_c,
+                                                                                                            p180_inhg,
+                                                                                                            slp180_inhg,
+                                                                                                            pa180_ft,
+                                                                                                            da180_ft)
+    print("{:s}: T(F):{:.2f} T(C):{:.2f} RH:{:.1f}".format(str_time, t2315_f, t2315_c, rh2315))
+    print("{:s}: New Rain:{:.2f} Total Rain:{:.2f}".format(str_time, interval_rain_in, total_rain_in))
 
-
-    # we only want to read the AM2315 and Rain every 5 seconds
-    if timenow.second%5 == 0:
-      t_f, t_c, rh = am2315.get_readings()
-    
-      str_time = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-      print("{:s}: T(F):{:.2f} T(C):{:.2f} RH:{:.1f}".format(str_time, t_f, t_c, rh))
-
-      interval_rain_in = rain111.get_readings()
-      total_rain_in = total_rain_in + interval_rain_in
-
-      print("{:s}: New Rain:{:.2f} Total Rain:{:.2f}".format(str_time, interval_rain_in, total_rain_in))
-
-    time.sleep(1)
+    time.sleep(5)
 
 # only run main if this is called directly
 if __name__ == '__main__':

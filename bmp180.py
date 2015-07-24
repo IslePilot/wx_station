@@ -5,6 +5,7 @@ Copyright 2014 AeroSys Engineering, Inc.
 All Rights Reserved
 
 Revision History:
+  2014-07-24, ksb, added calibration factor for SLP computation
   2014-12-31, ksb, created
 """
 
@@ -13,7 +14,7 @@ import datetime
 import Adafruit_BMP.BMP085 as BMP085
 
 # define a version for this file
-VERSION = "1.0.20141231a"
+VERSION = "1.0.20150724a"
 
 class BMP180(object):
 
@@ -99,13 +100,15 @@ class BMP180(object):
     g0 = 32.17405	# ft/s^2
     M = 28.9644		# g/mol
 
+    calibration = 0.05
+
     exponent = (g0*M)/(R*L)
     paren = T0 / (T0+L*(self.sensor_elevation_ft-H0))
     pressure = p0 * paren**exponent
 
     delta_p = p0 - pressure
 
-    return delta_p + p_inhg
+    return delta_p + p_inhg + calibration
 
   def compute_density_altitude(self, p_inhg, t_f):
     """Compute the density altitude.
