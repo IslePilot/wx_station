@@ -25,16 +25,25 @@ sys.path.append("..")
 
 import time
 import datetime
+import signal
 
 import am2315 as am
 import bmp180 as bmp
+import rainwise111 as rain
 
 # define a version for this file
-VERSION = "1.0.20141231a"
+VERSION = "1.0.20150724a"
+
+def signal_handler(signal, frame):
+  print "Fence_Station.py:  You pressed Ctrl-c.  Exiting."
+  rain.RAINWISE_TERMINATE_REQUEST = True
+  time.sleep(1.0)
+  sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
 
 def main():
   # add the GPL license output
-  print("am2315.py Copyright (C) 2014 AeroSys Engineering, Inc.")
+  print("Copyright (C) 2014 AeroSys Engineering, Inc.")
   print("This program comes with ABSOLUTELY NO WARRANTY;")
   print("This is free software, and you are welcome to redistribute it")
   print("under certain conditions.  See GNU Public License.")
@@ -43,6 +52,8 @@ def main():
   # start here
   am2315 = am.AM2315()
   bmp180 = bmp.BMP180(sensor_elevation_ft = 5089.0)
+  rain111 = rain.Rainwise111()
+  total_rain_in = 0.0
 
   # the first two readings of the AM2315 might be junk, read and skip
   t_f, t_c, rh = am2315.get_readings()
@@ -67,19 +78,20 @@ def main():
                                                                                                             pa_ft,
                                                                                                             da_ft)
 
-    # we only want to read the AM2315 every 5 seconds
+
+    # we only want to read the AM2315 and Rain every 5 seconds
     if timenow.second%5 == 0:
       t_f, t_c, rh = am2315.get_readings()
-
     
       str_time = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
       print("{:s}: T(F):{:.2f} T(C):{:.2f} RH:{:.1f}".format(str_time, t_f, t_c, rh))
 
+      interval_rain_in = rain111.get_readings()
+      total_rain_in = total_rain_in + interval_rain_in
+
+      print("{:s}: New Rain:{:.2f} Total Rain:{:.2f}".format(str_time, interval_rain_in, total_rain_in))
 
     time.sleep(1)
-
-
-
 
 # only run main if this is called directly
 if __name__ == '__main__':
