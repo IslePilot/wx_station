@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Revision History:
+  2015-07-24, ksb, corrected temperature input into density altitude computation
   2015-07-24, ksb, changed data retrieval to once per 5 seconds
   2015-07-24, ksb, added raingauge support
   2014-12-31, ksb, created
@@ -78,7 +79,7 @@ def main():
 
     # read the data
     # Read the BMP180
-    t180_f, t180_c, p180_inhg, slp180_inhg, pa180_ft, da180_ft = bmp180.get_readings()
+    t180_f, t180_c, p180_inhg, slp180_inhg, pa180_ft = bmp180.get_readings()
 
     # Read the AM2315
     t2315_f, t2315_c, rh2315 = am2315.get_readings()
@@ -87,6 +88,9 @@ def main():
     interval_rain_in = rain111.get_readings()
     total_rain_in = total_rain_in + interval_rain_in
 
+    # compute the density altitude
+    da_ft = bmp.compute_density_altitude(p180_inhg, t2315_f)
+
     # show the user what we got
     print "{:s}: T(F):{:.2f} T(C):{:.2f} P(inHg):{:.2f} SLP(inHg):{:.2f} PA(ft):{:.1f} DA:{:.1f}".format(str_time,
                                                                                                             t180_f,
@@ -94,7 +98,7 @@ def main():
                                                                                                             p180_inhg,
                                                                                                             slp180_inhg,
                                                                                                             pa180_ft,
-                                                                                                            da180_ft)
+                                                                                                            da_ft)
     print("{:s}: T(F):{:.2f} T(C):{:.2f} RH:{:.1f}".format(str_time, t2315_f, t2315_c, rh2315))
     print("{:s}: New Rain:{:.2f} Total Rain:{:.2f}".format(str_time, interval_rain_in, total_rain_in))
 

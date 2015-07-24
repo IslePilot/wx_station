@@ -5,7 +5,8 @@ Copyright 2014 AeroSys Engineering, Inc.
 All Rights Reserved
 
 Revision History:
-  2014-07-24, ksb, added calibration factor for SLP computation
+  2015-07-24, ksb, moved density altitude computation out of class for accuracy
+  2015-07-24, ksb, added calibration factor for SLP computation
   2014-12-31, ksb, created
 """
 
@@ -14,7 +15,23 @@ import datetime
 import Adafruit_BMP.BMP085 as BMP085
 
 # define a version for this file
-VERSION = "1.0.20150724a"
+VERSION = "1.0.20150724b"
+
+# define the module methods
+def compute_density_altitude(p_inhg, t_f):
+  """Compute the density altitude.
+
+  This is not a class method as the temperature used should be
+  the best temperature available.  Since the BMP180 isn't weather
+  proof, it likely won't be in a FARS and will probably be too
+  warm.
+
+  p_inhg: static pressure in inches of mercury
+  t_f: temperature in Farenheit
+
+  returns: density altitude in feet"""
+  # use NWS approximation for density altitude
+  return 145442.16 * (1 - (17.326*p_inhg/(459.67+t_f))**0.235)
 
 class BMP180(object):
 
@@ -41,8 +58,7 @@ class BMP180(object):
       t_c: temperature in Celsius
       p_inHg: static pressure in inches of mercury
       slp_inHg: sea-level pressure in inches of mercury
-      pa_ft: pressure altitude in feet
-      da_ft: density altitude in feet"""
+      pa_ft: pressure altitude in feet"""
 
     # read the sensor to get the basic readings
     t_c = self.sensor.read_temperature()	# get the temperature in deg C
@@ -56,9 +72,8 @@ class BMP180(object):
     slp_inhg = self.compute_sealevel_pressure(p_inhg)
 
     pa_ft = self.m_to_ft(pa_m)
-    da_ft = self.compute_density_altitude(p_inhg, t_f)
 
-    return t_f, t_c, p_inhg, slp_inhg, pa_ft, da_ft
+    return t_f, t_c, p_inhg, slp_inhg, pa_ft
 
   def c_to_f(self, t_c):
     """Convert Celsius to Farenheit.
@@ -110,16 +125,6 @@ class BMP180(object):
 
     return delta_p + p_inhg + calibration
 
-  def compute_density_altitude(self, p_inhg, t_f):
-    """Compute the density altitude.
-
-    p_inhg: static pressure in inches of mercury
-    t_f: temperature in Farenheit
-
-    returns: density altitude in feet"""
-    # use NWS approximation for density altitude
-    return 145442.16 * (1 - (17.326*p_inhg/(459.67+t_f))**0.235)
-
 
 def main():
   # instance our sensor object
@@ -128,7 +133,8 @@ def main():
   # read the values every second
   while True:
     # get the readings
-    t_f, t_c, p_inhg, slp_inhg, pa_ft, da_ft = bmp180.get_readings()
+    t_f, t_c, p_inhg, slp_inhg, pa_ft = bmp180.get_readings()
+    da_ft = compute_density_altitude(p_inhg, t_f)
 
     # get a timestamp
     timenow = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
