@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Revision History:
+  2015-07-24, ksb, output cleanup
   2015-07-24, ksb, corrected temperature input into density altitude computation
   2015-07-24, ksb, changed data retrieval to once per 5 seconds
   2015-07-24, ksb, added raingauge support
@@ -35,7 +36,7 @@ import bmp180 as bmp
 import rainwise111 as rain
 
 # define a version for this file
-VERSION = "1.0.20150724b"
+VERSION = "1.0.20150724c"
 
 def signal_handler(signal, frame):
   """Called by the signal handler when Control C is pressed"""
@@ -73,17 +74,13 @@ def main():
 
   # main loop
   while True:
-    # get a timestamp
-    timenow = datetime.datetime.utcnow()
-    str_time = timenow.strftime("%Y-%m-%d %H:%M:%S")
-
     # read the data
-    # Read the BMP180
-    t180_f, t180_c, p180_inhg, slp180_inhg, pa180_ft = bmp180.get_readings()
-
     # Read the AM2315
     t2315_f, t2315_c, rh2315 = am2315.get_readings()
     
+    # Read the BMP180
+    t180_f, t180_c, p180_inhg, slp180_inhg, pa180_ft = bmp180.get_readings()
+
     # Read the Rain Gauge
     interval_rain_in = rain111.get_readings()
     total_rain_in = total_rain_in + interval_rain_in
@@ -91,16 +88,22 @@ def main():
     # compute the density altitude
     da_ft = bmp.compute_density_altitude(p180_inhg, t2315_f)
 
+    # get the CPU temp
+    t_cpu_c = int(open('/sys/class/thermal/thermal_zone0/temp').read()) / 1e3
+    t_cpu_f = t_cpu_c * 9.0/5.0 + 32.0
+
+    # get a timestamp
+    timenow = datetime.datetime.utcnow()
+    str_time = timenow.strftime("%Y-%m-%d %H:%M:%S")
+
     # show the user what we got
-    print "{:s}: T(F):{:.2f} T(C):{:.2f} P(inHg):{:.2f} SLP(inHg):{:.2f} PA(ft):{:.1f} DA:{:.1f}".format(str_time,
-                                                                                                            t180_f,
-                                                                                                            t180_c,
-                                                                                                            p180_inhg,
-                                                                                                            slp180_inhg,
-                                                                                                            pa180_ft,
-                                                                                                            da_ft)
-    print("{:s}: T(F):{:.2f} T(C):{:.2f} RH:{:.1f}".format(str_time, t2315_f, t2315_c, rh2315))
-    print("{:s}: New Rain:{:.2f} Total Rain:{:.2f}".format(str_time, interval_rain_in, total_rain_in))
+    print
+    print "{:s}:".format(str_time)
+    print "Temperature(F):{:.2f} Humidity(%):{:.1f} ".format(t2315_f, rh2315)
+    print "Pressure(inHg):{:.2f} Sea-Level Pressure(inHg):{:.2f}".format(p180_inhg, slp180_inhg)
+    print "Pressure Altitude:{:.1f} Density Altitude:{:.1f}".format(pa180_ft, da_ft)
+    print "New Rain:{:.2f} Total Rain:{:.2f}".format(interval_rain_in, total_rain_in)
+    print "CPU Temp:{:.2f} Board Temp:{:.2f}".format(t_cpu_f, t180_f)
 
     time.sleep(5)
 
