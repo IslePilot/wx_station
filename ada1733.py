@@ -28,7 +28,8 @@ import datetime
 import signal
 from datetime import timedelta
 
-from __hardware.Adafruit_ADS1x15 import ADS1x15
+#from __hardware.Adafruit_ADS1x15 import ADS1x15
+from Adafruit_ADS1x15 import ADS1x15
 
 # define a version for this file
 VERSION = "1.0.20150102a"
@@ -46,14 +47,16 @@ class ADA1733(object):
   ADDR_SDA = 0x4a
   ADDR_SCL = 0x4b
 
-  ADS1015 = 0x00	# 12-bit ADC
-  ADS1115 = 0x01	# 16-bit ADC
+  #ADS1015 = 0x00	# 12-bit ADC
+  #ADS1115 = 0x01	# 16-bit ADC
 
   def __init__(self):
     """Initialize the ADA1733 (anemometer) object."""
-    self.adc = ADS1x15(address=ADA1733.ADDR_GND,
-                       ic=ADA1733.ADS1115)
+    #self.adc = ADS1x15(address=ADA1733.ADDR_GND, ic=ADA1733.ADS1115)
+    self.adc = ADS1x15.ADS1115(address=0x48)
     self.lasttime = datetime.datetime.utcnow()
+    self.min_v = 5.0
+    self.max_v = 0.0
     return
 
   def get_readings(self):
@@ -67,7 +70,19 @@ class ADA1733(object):
 
     # get a timestamp and a reading
     timenow = datetime.datetime.utcnow()
-    volts = self.adc.readADCDifferential(chP=2, chN=3, pga=2048, sps=250)/1000.0
+    #volts = self.adc.readADCDifferential(chP=2, chN=3, pga=2048, sps=250)/1000.0
+    # 0 = 0-1, 1=0-3, 2=1-3, 3=2-3
+    # Gains: 2/3=6.144, 1=4.096, 2=2.048, 4=1.02, 8=0.512, 16-0.256
+    #volts = self.adc.read_adc_difference(3, gain=2,data_rate=250)/10000.0
+    digitized = self.adc.read_adc_difference(3, gain=2,data_rate=250)/10000.0
+
+    volts = digitized * 2.048/32767
+
+    if volts < self.min_v:
+        self.min_v = volts
+    if volts > self.max_v:
+        self.max_v = volts
+    print "Current:%.6f  Min%.6f  Max%.6f"%(volts, self.min_v, self.max_v)
 
     # get the converted values
     ws_mph = self.volts_to_mph(volts)

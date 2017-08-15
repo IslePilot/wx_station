@@ -27,7 +27,8 @@ import time
 import datetime
 import signal
 
-from __hardware.Adafruit_ADS1x15 import ADS1x15
+#from __hardware.Adafruit_ADS1x15 import ADS1x15
+from Adafruit_ADS1x15 import ADS1x15
 
 # define a version for this file
 VERSION = "1.0.20150109a"
@@ -51,8 +52,8 @@ class Pyranometer(object):
 
   def __init__(self):
     """Initialize the ADS1115 object."""
-    self.adc = ADS1x15(address=Pyranometer.ADDR_GND,
-                       ic=Pyranometer.ADS1115)
+    #self.adc = ADS1x15(address=Pyranometer.ADDR_GND, ic=Pyranometer.ADS1115)
+    self.adc = ADS1x15.ADS1115(address=0x48)
     return
 
   def get_readings(self):
@@ -63,7 +64,11 @@ class Pyranometer(object):
     # get a timestamp and a reading
     timenow = datetime.datetime.utcnow()
     # set the gain for a maximum of 1.024 V
-    volts = self.adc.readADCDifferential(chP=0, chN=1, pga=512, sps=250)/1000.0
+    #volts = self.adc.readADCDifferential(chP=0, chN=1, pga=512, sps=250)/1000.0
+    digitized = self.adc.read_adc_difference(0, gain=16,data_rate=250)
+
+    # convert to volts
+    volts = digitized * 0.256/32767
 
     # get the converted values
     flux = self.volts_to_flux(volts)

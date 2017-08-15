@@ -50,7 +50,7 @@ import vane as vane
 import numpy as np
 
 # define a version for this file
-VERSION = "1.0.20150201a"
+VERSION = "1.0.20150802a"
 
 def signal_handler(signal, frame):
   print "You pressed Control-c.  Exiting."
@@ -316,6 +316,11 @@ class roof_station(object):
       print "     Pulse Count:{:d}".format(self.pulse_count)
       self.pulse_count = 0
 
+      # get the CPU temp
+      t_cpu_c = int(open('/sys/class/thermal/thermal_zone0/temp').read()) / 1e3
+      t_cpu_f = t_cpu_c * 9.0/5.0 + 32.0
+      print "CPU Temp:{:.2f}".format(t_cpu_f)
+
       # add the data to the CSV file
       self.csv.write("{:s},".format(timestamp))
       self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f},".format(data_003.m_dir,
@@ -339,6 +344,7 @@ class roof_station(object):
       #                                                                            data_600.gust,
       #                                                                            data_600.ti,
       #                                                                            data_600.solar))
+
 
 
     self.data_acq.release()
@@ -413,6 +419,9 @@ def main():
   print("")
 
   print("Press Control-c to exit.")
+
+  print("Waiting for clock to stabilize.")
+  time.sleep(15)
 
   # instance our station
   roof = roof_station('/mnt/keith-pc/wx_data/roof_station')

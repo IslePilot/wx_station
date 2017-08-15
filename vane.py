@@ -29,7 +29,8 @@ import datetime
 import signal
 from datetime import timedelta
 
-from __hardware.Adafruit_ADS1x15 import ADS1x15
+#from __hardware.Adafruit_ADS1x15 import ADS1x15
+from Adafruit_ADS1x15 import ADS1x15
 
 # define a version for this file
 VERSION = "1.0.20150109a"
@@ -52,8 +53,8 @@ class Vane(object):
 
   def __init__(self):
     """Initialize the ADS1115 object."""
-    self.adc = ADS1x15(address=Vane.ADDR_VDD,
-                       ic=Vane.ADS1115)
+    #self.adc = ADS1x15(address=Vane.ADDR_VDD, ic=Vane.ADS1115)
+    self.adc = ADS1x15.ADS1115(address=0x49)
 
     self.last_v = None
 
@@ -66,11 +67,34 @@ class Vane(object):
 
     # get a timestamp and a reading
     timenow = datetime.datetime.utcnow()
-    volts = self.adc.readADCDifferential(chP=2, chN=3, pga=6144, sps=250)/1000.0
+    #volts = self.adc.readADCDifferential(chP=2, chN=3, pga=6144, sps=250)/1000.0
+    # differential
+    # 0: 0 & 1
+    # 1: 0 & 3
+    # 2: 1 & 3
+    # 3: 2 & 3
+
+    # channel
+    # 0: 0 & GND
+    # 1: 1 & GND
+    # 2: 2 & GND
+    # 3: 3 & GND
+
+    # gain
+    # 0: FS=+/-6.144
+    # 1: FS=+/-4.096
+    # 2: FS=+/-2.048
+    # 4: FS=+/-1.024
+    # 8: FS=+/-0.512
+    # 16: FS=+/-0.256
+    #volts = self.adc.read_adc_difference(3, gain=0, data_rate=250)/10000.0
+    digitized = self.adc.read_adc(2, gain=0, data_rate=250)
+
+    # convert to volts
+    volts = digitized * 6.144/32767
 
     # get the converted values
     degrees = self.volts_to_degrees(volts)
-
 
     return volts, degrees
 
@@ -81,13 +105,20 @@ class Vane(object):
 
     returns: voltage converted to meters per second"""
 
-    min_v = 0.32831
-    max_v = 2.97750
+    #min_v = 0.32831
+    #max_v = 2.97750
+    min_v = 0.33451
+    max_v = 2.98322
     slope = 360.0/(max_v-min_v)
     b = -(slope*min_v)
     deg = slope*volts+b
     if deg < 0.05: deg = 0.0
     if deg > 359.95: deg = 0.0
+
+    # calibration
+    deg -= 3.9
+    deg %= 360.0
+
     return deg
 
 
@@ -120,9 +151,6 @@ def main():
     # show the user what we got
     data = ": Volts:{:.5f}  Degrees:{:05.1f}, max:{:.5f} min:{:.5f}".format(volts, degrees, max_volts, min_volts)
     print timenow, data
-
-    # wait a bit
-    #time.sleep(0.1) 
 
 # only run main if this is called directly
 if __name__ == '__main__':
