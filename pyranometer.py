@@ -109,7 +109,7 @@ def main():
     print timenow, data
 
     # wait a bit
-    #time.sleep(0.25) 
+    time.sleep(0.25) 
 
 # only run main if this is called directly
 if __name__ == '__main__':

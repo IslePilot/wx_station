@@ -88,7 +88,7 @@ class Vane(object):
     # 8: FS=+/-0.512
     # 16: FS=+/-0.256
     #volts = self.adc.read_adc_difference(3, gain=0, data_rate=250)/10000.0
-    digitized = self.adc.read_adc(2, gain=0, data_rate=250)
+    digitized = self.adc.read_adc(2, gain=0, data_rate=128)
 
     # convert to volts
     volts = digitized * 6.144/32767
@@ -105,10 +105,9 @@ class Vane(object):
 
     returns: voltage converted to meters per second"""
 
-    #min_v = 0.32831
-    #max_v = 2.97750
-    min_v = 0.33451
-    max_v = 2.98322
+    # calibrations
+    min_v = 0.32870 #0.32851
+    max_v = 2.97815 #2.97628
     slope = 360.0/(max_v-min_v)
     b = -(slope*min_v)
     deg = slope*volts+b
@@ -116,7 +115,7 @@ class Vane(object):
     if deg > 359.95: deg = 0.0
 
     # calibration
-    deg -= 3.9
+    deg -= 3.0
     deg %= 360.0
 
     return deg
@@ -151,6 +150,8 @@ def main():
     # show the user what we got
     data = ": Volts:{:.5f}  Degrees:{:05.1f}, max:{:.5f} min:{:.5f}".format(volts, degrees, max_volts, min_volts)
     print timenow, data
+
+    time.sleep(0.25)
 
 # only run main if this is called directly
 if __name__ == '__main__':

@@ -70,11 +70,10 @@ class ADA1733(object):
 
     # get a timestamp and a reading
     timenow = datetime.datetime.utcnow()
-    #volts = self.adc.readADCDifferential(chP=2, chN=3, pga=2048, sps=250)/1000.0
     # 0 = 0-1, 1=0-3, 2=1-3, 3=2-3
     # Gains: 2/3=6.144, 1=4.096, 2=2.048, 4=1.02, 8=0.512, 16-0.256
-    #volts = self.adc.read_adc_difference(3, gain=2,data_rate=250)/10000.0
-    digitized = self.adc.read_adc_difference(3, gain=2,data_rate=250)/10000.0
+    digitized = self.adc.read_adc_difference(3, gain=2,data_rate=250)
+    #digitized = self.adc.read_adc(2, gain=2,data_rate=250)
 
     volts = digitized * 2.048/32767
 
