@@ -77,11 +77,11 @@ class ADA1733(object):
 
     volts = digitized * 2.048/32767
 
-    if volts < self.min_v:
-        self.min_v = volts
-    if volts > self.max_v:
-        self.max_v = volts
-    print "Current:%.6f  Min%.6f  Max%.6f"%(volts, self.min_v, self.max_v)
+    #if volts < self.min_v:
+    #    self.min_v = volts
+    #if volts > self.max_v:
+    #    self.max_v = volts
+    #print "Current:%.6f  Min%.6f  Max%.6f"%(volts, self.min_v, self.max_v)
 
     # get the converted values
     ws_mph = self.volts_to_mph(volts)

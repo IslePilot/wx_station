@@ -64,7 +64,8 @@ class Pyranometer(object):
     # get a timestamp and a reading
     timenow = datetime.datetime.utcnow()
     # set the gain for a maximum of 1.024 V
-    #volts = self.adc.readADCDifferential(chP=0, chN=1, pga=512, sps=250)/1000.0
+    # the peak insolation in Colorado is likely around 1000 W/m^2.  If we use
+    # a voltage range that goes +/-0.256, we are good up to about 1229 W/m^2.
     digitized = self.adc.read_adc_difference(0, gain=16,data_rate=250)
 
     # convert to volts
@@ -78,9 +79,15 @@ class Pyranometer(object):
   def volts_to_flux(self, volts):
     """Convert from voltage to meters per second.
 
-    volts: voltage from ADA1733 anemometer
+    volts: voltage from the pyranometer
 
     returns: voltage converted to meters per second"""
+
+    # this calibration value is the one found in a calibration by the original
+    # pyranometer designer.  This needs to be verified once installed and compared
+    # to local measurements if you can find any.  Try NREL?
+    # http://midcdmz.nrel.gov/srrl_bms/display/
+    # http://midcdmz.nrel.gov/srrl_bms <-- 20 nm from home
     return volts * 4800.0
 
 
