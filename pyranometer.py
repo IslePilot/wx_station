@@ -71,6 +71,10 @@ class Pyranometer(object):
     # convert to volts
     volts = digitized * 0.256/32767
 
+    # don't let it go negative
+    if volts < 0.0:
+        volts = 0.0
+
     # get the converted values
     flux = self.volts_to_flux(volts)
 
@@ -88,7 +92,8 @@ class Pyranometer(object):
     # to local measurements if you can find any.  Try NREL?
     # http://midcdmz.nrel.gov/srrl_bms/display/
     # http://midcdmz.nrel.gov/srrl_bms <-- 20 nm from home
-    return volts * 4800.0
+    # calibrated on 20170906 data, 0.963 factor found (4622.4)
+    return volts * 4800.0 * 0.963
 
 
 def main():

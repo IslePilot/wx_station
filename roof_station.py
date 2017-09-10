@@ -321,6 +321,10 @@ class roof_station(object):
       t_cpu_f = t_cpu_c * 9.0/5.0 + 32.0
       print "CPU Temp:{:.2f}".format(t_cpu_f)
 
+      # add the wind file
+      with open("%s/currentwind.csv"%self.data_path, "w") as windfile:
+          windfile.write("%6.2f,%.2f,%.2f\n"%(data_003.m_dir, data_003.v_spd, data_003.gust))
+
       # add the data to the CSV file
       self.csv.write("{:s},".format(timestamp))
       self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f},".format(data_003.m_dir,

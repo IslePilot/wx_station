@@ -88,7 +88,8 @@ class Vane(object):
     # 8: FS=+/-0.512
     # 16: FS=+/-0.256
     #volts = self.adc.read_adc_difference(3, gain=0, data_rate=250)/10000.0
-    digitized = self.adc.read_adc(2, gain=0, data_rate=128)
+    #digitized = self.adc.read_adc(3, gain=0, data_rate=250)
+    digitized = self.adc.read_adc_difference(3, gain=0, data_rate=250)
 
     # convert to volts
     volts = digitized * 6.144/32767
@@ -106,8 +107,8 @@ class Vane(object):
     returns: voltage converted to meters per second"""
 
     # calibrations
-    min_v = 0.32870 #0.32851
-    max_v = 2.97815 #2.97628
+    min_v = 0.24469
+    max_v = 4.82415
     slope = 360.0/(max_v-min_v)
     b = -(slope*min_v)
     deg = slope*volts+b
@@ -115,7 +116,7 @@ class Vane(object):
     if deg > 359.95: deg = 0.0
 
     # calibration
-    deg -= 3.0
+    deg -= 249.5 # 339.5=90.0
     deg %= 360.0
 
     return deg

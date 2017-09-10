@@ -71,17 +71,10 @@ class ADA1733(object):
     # get a timestamp and a reading
     timenow = datetime.datetime.utcnow()
     # 0 = 0-1, 1=0-3, 2=1-3, 3=2-3
-    # Gains: 2/3=6.144, 1=4.096, 2=2.048, 4=1.02, 8=0.512, 16-0.256
+    # Gains: 2/3=6.144, 1=4.096, 2=2.048, 4=1.02, 8=0.512, 16=0.256
     digitized = self.adc.read_adc_difference(3, gain=2,data_rate=250)
-    #digitized = self.adc.read_adc(2, gain=2,data_rate=250)
 
-    volts = digitized * 2.048/32767
-
-    #if volts < self.min_v:
-    #    self.min_v = volts
-    #if volts > self.max_v:
-    #    self.max_v = volts
-    #print "Current:%.6f  Min%.6f  Max%.6f"%(volts, self.min_v, self.max_v)
+    volts = digitized * 2.048/32767.
 
     # get the converted values
     ws_mph = self.volts_to_mph(volts)
@@ -105,16 +98,14 @@ class ADA1733(object):
     # a 0 second average of the zero speed value was 0.3988 on 1/2/2015
     #rise = 32.4
     #run = 2.0 - 0.4
-    #slope = 20.235
-    #y_intercept = -8.0697
+    m = 32.4/1.6
+    b = -0.4*m
+
     if volts < 0.4:
       # don't return negative values ever
       return 0.0
     else:
-      return 20.25 * volts - 8.1
-
-    # convert to mph
-    return mps * 2.236936292
+      return (m*volts+b)*2.236936
 
   def wind_run(self, delta_t, ws_mph):
     """Computes the wind run for the given time period.
