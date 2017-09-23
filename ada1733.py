@@ -72,7 +72,13 @@ class ADA1733(object):
     timenow = datetime.datetime.utcnow()
     # 0 = 0-1, 1=0-3, 2=1-3, 3=2-3
     # Gains: 2/3=6.144, 1=4.096, 2=2.048, 4=1.02, 8=0.512, 16=0.256
-    digitized = self.adc.read_adc_difference(3, gain=2,data_rate=250)
+    while True:
+        try:
+            digitized = self.adc.read_adc_difference(3, gain=2,data_rate=250)
+            break
+        except:
+            print "ADA1733.get_readings(): unable to read ADC"
+            time.sleep(0.1)
 
     volts = digitized * 2.048/32767.
 

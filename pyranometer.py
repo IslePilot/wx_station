@@ -66,7 +66,13 @@ class Pyranometer(object):
     # set the gain for a maximum of 1.024 V
     # the peak insolation in Colorado is likely around 1000 W/m^2.  If we use
     # a voltage range that goes +/-0.256, we are good up to about 1229 W/m^2.
-    digitized = self.adc.read_adc_difference(0, gain=16,data_rate=250)
+    while True:
+        try:
+            digitized = self.adc.read_adc_difference(0, gain=16,data_rate=250)
+            break
+        except:
+            print "Pyranometer.get_readings(): unable to read ADC."
+            time.sleep(0.1)
 
     # convert to volts
     volts = digitized * 0.256/32767
