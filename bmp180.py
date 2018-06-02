@@ -128,7 +128,7 @@ class BMP180(object):
 
 def main():
   # instance our sensor object
-  bmp180 = BMP180(sensor_elevation_ft = 5089.0)
+  bmp180 = BMP180(sensor_elevation_ft = 5106.7)
 
   # read the values every second
   while True:

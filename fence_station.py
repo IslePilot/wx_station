@@ -1,7 +1,7 @@
 #/usr/bin/python2
 
 """
-Copyright (C) 2015 AeroSys Engineering, Inc.
+Copyright (C) 2018 AeroSys Engineering, Inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Revision History:
+  2018-05-31, ksb, added shared memory array and array server code
   2015-07-24, ksb, output cleanup
   2015-07-24, ksb, corrected temperature input into density altitude computation
   2015-07-24, ksb, changed data retrieval to once per 5 seconds
@@ -26,17 +27,21 @@ Revision History:
 
 import sys
 sys.path.append("..")
+import __common.mparray_transmitter as txrx
 
 import time
 import datetime
+import pytz
 import signal
 
 import am2315 as am
 import bmp180 as bmp
 import rainwise111 as rain
 
+from multiprocessing import Array
+
 # define a version for this file
-VERSION = "1.0.20150724c"
+VERSION = "1.0.20180531a"
 
 def signal_handler(signal, frame):
   """Called by the signal handler when Control C is pressed"""
@@ -53,16 +58,31 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def main():
   # add the GPL license output
-  print("Copyright (C) 2015 AeroSys Engineering, Inc.")
+  print("Copyright (C) 2018 AeroSys Engineering, Inc.")
   print("This program comes with ABSOLUTELY NO WARRANTY;")
   print("This is free software, and you are welcome to redistribute it")
   print("under certain conditions.  See GNU Public License.")
   print("")
   print"Version: ", VERSION
 
+  # create our time base
+  epoch = datetime.datetime(1970,1,1, tzinfo=pytz.UTC)
+
+  # create a shared array of doubles
+  data = Array('d', 11)
+
+  # instance the data server
+  hostname = '192.168.0.76'
+  port = 4831
+  authkey = 'fencepi_data'
+
+  dataserver = txrx.MPArrayServer(hostname, port, authkey, data)
+  dataserver.daemon = True  # run until this process dies
+  dataserver.start()
+
   # start here
   am2315 = am.AM2315()
-  bmp180 = bmp.BMP180(sensor_elevation_ft = 5089.0)
+  bmp180 = bmp.BMP180(sensor_elevation_ft = 5094.0)
   rain111 = rain.Rainwise111()
   total_rain_in = 0.0
 
@@ -93,11 +113,25 @@ def main():
     t_cpu_f = t_cpu_c * 9.0/5.0 + 32.0
 
     # get a timestamp
-    timenow = datetime.datetime.utcnow()
-    str_time = timenow.strftime("%Y-%m-%d %H:%M:%S")
+    timenow = datetime.datetime.now(pytz.UTC)
+    str_time = timenow.strftime("%Y-%m-%d %H:%M:%S.%f %Z")
+
+    # update our array
+    with data.get_lock():
+        data[0] = (timenow-epoch).total_seconds()  # UNIX Timestamp
+        data[1] = t2315_f               # Outside Temperature (deg F)
+        data[2] = rh2315                # Relative Humidty (%)
+        data[3] = t180_f                # BMP180 Board Temp (deg F)
+        data[4] = p180_inhg             # Pressure (inHg)
+        data[5] = slp180_inhg           # Sea Level Pressure (inHg)
+        data[6] = pa180_ft              # Pressure Altitdue (ft)
+        data[7] = da_ft                 # Density Altitude (ft)
+        data[8] = interval_rain_in      # Rain in the last read interval (in)
+        data[9] = total_rain_in         # total rain since system start (in)
+        data[10]= t_cpu_f               # CPU Temp (deg F)
 
     # show the user what we got
-    print
+    print "============================================================="
     print "{:s}:".format(str_time)
     print "Temperature(F):{:.2f} Humidity(%):{:.1f} ".format(t2315_f, rh2315)
     print "Pressure(inHg):{:.2f} Sea-Level Pressure(inHg):{:.2f}".format(p180_inhg, slp180_inhg)
