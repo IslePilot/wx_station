@@ -89,8 +89,14 @@ class Vane(object):
     # 16: FS=+/-0.256
     #volts = self.adc.read_adc_difference(3, gain=0, data_rate=250)/10000.0
     #digitized = self.adc.read_adc(3, gain=0, data_rate=250)
-    digitized = self.adc.read_adc_difference(3, gain=0, data_rate=250)
-
+    while True:
+        try:
+            digitized = self.adc.read_adc_difference(3, gain=0, data_rate=250)
+            break
+        except:
+            print "vane.get_readings(): unable to read ADC"
+            time.sleep(0.1)
+    
     # convert to volts
     volts = digitized * 6.144/32767
 

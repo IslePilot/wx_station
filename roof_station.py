@@ -267,7 +267,7 @@ class roof_station(object):
       self.next_001 = timenow + timedelta(0, 0, 0, 875)
 
       # if our date changed, open a new file
-      if timenow.date() != self.last_date:
+      if timenow.date() != self.last_date or self.need_new_files == True:
         # close the current file and reopen a new one
         self.new_file(timenow)
       
@@ -322,32 +322,37 @@ class roof_station(object):
       print "CPU Temp:{:.2f}".format(t_cpu_f)
 
       # add the wind file
-      with open("%s/currentwind.csv"%self.data_path, "w") as windfile:
+      try:
+        with open("%s/currentwind.csv"%self.data_path, "w") as windfile:
           windfile.write("%6.2f,%.2f,%.2f\n"%(data_003.m_dir, data_003.v_spd, data_003.gust))
+          self.need_new_file  = False
 
-      # add the data to the CSV file
-      self.csv.write("{:s},".format(timestamp))
-      self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f},".format(data_003.m_dir,
+        # add the data to the CSV file
+        self.csv.write("{:s},".format(timestamp))
+        self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f},".format(data_003.m_dir,
                                                                                   data_003.v_spd,
                                                                                   data_003.s_spd,
                                                                                   data_003.ss_std,
                                                                                   data_003.gust,
                                                                                   data_003.ti,
                                                                                   data_003.solar))
-      self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f}\n".format(data_120.m_dir,
+        self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f}\n".format(data_120.m_dir,
                                                                                   data_120.v_spd,
                                                                                   data_120.s_spd,
                                                                                   data_120.ss_std,
                                                                                   data_120.gust,
                                                                                   data_120.ti,
                                                                                   data_120.solar))
-      #self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f}\n".format(data_600.m_dir,
-      #                                                                            data_600.v_spd,
-      #                                                                            data_600.s_spd,
-      #                                                                            data_600.ss_std,
-      #                                                                            data_600.gust,
-      #                                                                            data_600.ti,
-      #                                                                            data_600.solar))
+        #self.csv.write("{:06.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.3f},{:.1f}\n".format(data_600.m_dir,
+        #                                                                            data_600.v_spd,
+        #                                                                            data_600.s_spd,
+        #                                                                            data_600.ss_std,
+        #                                                                            data_600.gust,
+        #                                                                            data_600.ti,
+        #                                                                            data_600.solar))
+      except:
+          print "unable to write to windfile....will retry next time"
+          self.need_new_files = True
 
 
 
@@ -370,43 +375,48 @@ class roof_station(object):
     # open the new file
     # only buffer 1 line
     bufsize = 1
-    self.csv = open(filename, "w", bufsize)
+    try: 
+      self.csv = open(filename, "w", bufsize)
 
-    # add the header
-    self.csv.write("Timestamps indicate end of averaging period\n")
-    self.csv.write("Software Version {:s}\n".format(VERSION))
-
-    self.csv.write("Yesterday's Stats (only filled in when running past midnight)\n")
-    self.csv.write("Total Windrun (miles),Maximum Gust (mph),Peak Solar Insolation (W/m^2)\n")
-    self.csv.write("{:.1f},{:.1f},{:.1f}\n".format(self.daily_windrun, self.max_gust, self.peak_solar))
-
-    self.csv.write("Time (UTC),")
-
-    self.csv.write("Wind Direction [3 sec] (True),")
-    self.csv.write("Vector Wind Speed [3 sec] (mph),")
-    self.csv.write("Scalar Wind Speed [3 sec] (mph),")
-    self.csv.write("Wind Speed Standard Deviation [3 sec] (mph),")
-    self.csv.write("Gust [3 sec] (mph),")
-    self.csv.write("TI [3 sec],")
-    self.csv.write("Solar Insolation [3 sec] (W/m^2),")
-
-    self.csv.write("Wind Direction [120 sec] (True),")
-    self.csv.write("Vector Wind Speed [120 sec] (mph),")
-    self.csv.write("Scalar Wind Speed [120 sec] (mph),")
-    self.csv.write("Wind Speed Standard Deviation [120 sec] (mph),")
-    self.csv.write("Gust [120 sec] (mph),")
-    self.csv.write("TI [120 sec],")
-    self.csv.write("Solar Insolation [120 sec] (W/m^2)\n")
-    
-    # if using this code, change the \n above to a ,
-    #self.csv.write("Wind Direction [600 sec] (True),")
-    #self.csv.write("Vector Wind Speed [600 sec] (mph),")
-    #self.csv.write("Scalar Wind Speed [600 sec] (mph),")
-    #self.csv.write("Wind Speed Standard Deviation [600 sec] (mph),")
-    #self.csv.write("Gust [600 sec] (mph),")
-    #self.csv.write("TI [600 sec],")
-    #self.csv.write("Solar Insolation [600 sec] (W/m^2)\n")
-
+      # add the header
+      self.csv.write("Timestamps indicate end of averaging period\n")
+      self.csv.write("Software Version {:s}\n".format(VERSION))
+  
+      self.csv.write("Yesterday's Stats (only filled in when running past midnight)\n")
+      self.csv.write("Total Windrun (miles),Maximum Gust (mph),Peak Solar Insolation (W/m^2)\n")
+      self.csv.write("{:.1f},{:.1f},{:.1f}\n".format(self.daily_windrun, self.max_gust, self.peak_solar))
+  
+      self.csv.write("Time (UTC),")
+  
+      self.csv.write("Wind Direction [3 sec] (True),")
+      self.csv.write("Vector Wind Speed [3 sec] (mph),")
+      self.csv.write("Scalar Wind Speed [3 sec] (mph),")
+      self.csv.write("Wind Speed Standard Deviation [3 sec] (mph),")
+      self.csv.write("Gust [3 sec] (mph),")
+      self.csv.write("TI [3 sec],")
+      self.csv.write("Solar Insolation [3 sec] (W/m^2),")
+  
+      self.csv.write("Wind Direction [120 sec] (True),")
+      self.csv.write("Vector Wind Speed [120 sec] (mph),")
+      self.csv.write("Scalar Wind Speed [120 sec] (mph),")
+      self.csv.write("Wind Speed Standard Deviation [120 sec] (mph),")
+      self.csv.write("Gust [120 sec] (mph),")
+      self.csv.write("TI [120 sec],")
+      self.csv.write("Solar Insolation [120 sec] (W/m^2)\n")
+   
+      # if using this code, change the \n above to a ,
+      #self.csv.write("Wind Direction [600 sec] (True),")
+      #self.csv.write("Vector Wind Speed [600 sec] (mph),")
+      #self.csv.write("Scalar Wind Speed [600 sec] (mph),")
+      #self.csv.write("Wind Speed Standard Deviation [600 sec] (mph),")
+      #self.csv.write("Gust [600 sec] (mph),")
+      #self.csv.write("TI [600 sec],")
+      #self.csv.write("Solar Insolation [600 sec] (W/m^2)\n")
+      self.need_new_files = False
+    except:
+      print "Unable to open new file.  Will retry"
+      self.need_new_files = True
+  
     # reset the daily statistics
     self.daily_windrun = 0.0
     self.max_gust = 0.0
