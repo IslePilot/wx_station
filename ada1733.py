@@ -80,7 +80,7 @@ class ADA1733(object):
             print "ADA1733.get_readings(): unable to read ADC"
             time.sleep(0.1)
 
-    volts = digitized * 2.048/32767.
+    volts = digitized * 62.5*10.0**-6.0
 
     # get the converted values
     ws_mph = self.volts_to_mph(volts)
@@ -103,15 +103,15 @@ class ADA1733(object):
     # which scales from 0 to 32.4 m/s
     # a 0 second average of the zero speed value was 0.3988 on 1/2/2015
     #rise = 32.4
-    #run = 2.0 - 0.4
-    m = 32.4/1.6
-    b = -0.4*m
+    #run = 2.0 - 0.3988
+    m = 32.4/(2.0-0.3988)   # 20.2348
+    b = 32.4 - (m*2.0) # -8.0696
 
     if volts < 0.4:
       # don't return negative values ever
       return 0.0
     else:
-      return (m*volts+b)*2.236936
+      return (m*volts+b)*(3600.0/(0.3048*5280))
 
   def wind_run(self, delta_t, ws_mph):
     """Computes the wind run for the given time period.
